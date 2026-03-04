@@ -1,58 +1,106 @@
 import os
 import pandas as pd
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
+from sklearn.model_selection import GroupShuffleSplit
 from PIL import Image
+import torchvision.transforms as transforms
 
-class NIHChestXrayDataset(Dataset):
-    def __init__(self, csv_path, image_dir, split_file=None, transform=None):
+"""Dataset access file that generates the dataloaders, does pre-processing, and implements the getitem method.
+This is for the original NIH Chest X-Ray 14 dataset, for the 14-class classification problem."""
+
+class NIHDataset(Dataset):
+    def __init__(self, dataframe, img_dir, transform=None):
         """
         Args:
-            csv_path: Path to Data_Entry_2017.csv
-            image_dir: Path to the directory containing all images
-            split_file: Path to train_val_list.txt or test_list.txt (official NIH splits)
-            transform: PyTorch transforms
+            dataframe (pd.DataFrame): The slice of Data_Entry_2017.csv for this split.
+            img_dir (str): Path to the folder containing all 112k images.
+            transform (callable, optional): PyTorch transforms.
         """
-        self.image_dir = image_dir
+        self.df = dataframe
+        self.img_dir = img_dir
         self.transform = transform
         
-        # Load main metadata
-        df = pd.read_csv(csv_path)
-        
-        # Filter by official split if provided (handles patient-level separation)
-        if split_file:
-            with open(split_file, 'r') as f:
-                valid_images = f.read().splitlines()
-            df = df[df['Image Index'].isin(valid_images)]
-
-        # Define the 14 pathologies
-        self.labels = [
-            'Atelectasis', 'Cardiomegaly', 'Effusion', 'Infiltration', 'Mass', 
-            'Nodule', 'Pneumonia', 'Pneumothorax', 'Consolidation', 'Edema', 
-            'Emphysema', 'Fibrosis', 'Pleural_Thickening', 'Hernia'
+        # Standard NIH-14 Pathology Labels
+        self.pathologies = [
+            'Atelectasis', 'Cardiomegaly', 'Effusion', 'Infiltration', 'Mass', 'Nodule', 
+            'Pneumonia', 'Pneumothorax', 'Consolidation', 'Edema', 'Emphysema', 
+            'Fibrosis', 'Pleural_Thickening', 'Hernia'
         ]
-        
-        # Multi-hot encode the labels
-        for label in self.labels:
-            df[label] = df['Finding Labels'].map(lambda x: 1 if label in x else 0)
-            
-        self.data = df.reset_index(drop=True)
 
     def __len__(self):
-        return len(self.data)
+        return len(self.df)
 
     def __getitem__(self, idx):
-        img_name = self.data.iloc[idx]['Image Index']
-        img_path = os.path.join(self.image_dir, img_name)
+        # Get filename from CSV
+        img_name = self.df.iloc[idx]['Image Index']
+        img_path = os.path.join(self.img_dir, img_name)
         
-        # Load image and convert to RGB (standard for torchvision models)
-        image = Image.open(img_path).convert('RGB')
+        # Load as RGB to ensure compatibility with ImageNet-pretrained weights
+        # even though X-rays are fundamentally grayscale.
+        try:
+            image = Image.open(img_path).convert('RGB')
+        except (IOError, OSError):
+            # Fallback for corrupted images if any exist in your download
+            image = Image.new('RGB', (1024, 1024), (0, 0, 0))
         
-        # Extract labels as a float tensor
-        label_values = self.data.iloc[idx][self.labels].values.astype('float32')
-        label_tensor = torch.tensor(label_values)
-
         if self.transform:
             image = self.transform(image)
+            
+        # Get labels from the one-hot encoded columns we'll create in the helper
+        labels = self.df.iloc[idx][self.pathologies].values.astype('float32')
+        
+        return image, torch.tensor(labels)
 
-        return image, label_tensor
+def get_nih_loaders(csv_path, img_dir, batch_size=16, resize_to=None, test_size=0.2):
+    """
+    Args:
+        csv_path: Path to Data_Entry_2017.csv
+        img_dir: Path to your consolidated 'all_images' folder
+        batch_size: Set low (e.g., 4 or 8) if using 1024x1024 on a consumer GPU
+        resize_to: Int (e.g., 512) if you want to downsample. Defaults to 1024.
+    """
+    df = pd.read_csv(csv_path)
+    
+    # 1. Expand 'Finding Labels' into individual one-hot columns
+    pathologies = [
+        'Atelectasis', 'Cardiomegaly', 'Effusion', 'Infiltration', 'Mass', 'Nodule', 
+        'Pneumonia', 'Pneumothorax', 'Consolidation', 'Edema', 'Emphysema', 
+        'Fibrosis', 'Pleural_Thickening', 'Hernia'
+    ]
+    
+    for path in pathologies:
+        df[path] = df['Finding Labels'].map(lambda x: 1 if path in x else 0)
+
+    # 2. Patient-Agnostic Split (Crucial for Medical Imaging)
+    # This prevents the same patient from appearing in both train and test.
+    gss = GroupShuffleSplit(n_splits=1, test_size=test_size, random_state=42)
+    train_idx, test_idx = next(gss.split(df, groups=df['Patient ID']))
+    
+    train_df = df.iloc[train_idx].reset_index(drop=True)
+    test_df = df.iloc[test_idx].reset_index(drop=True)
+
+    # 3. Define Transforms
+    # Defaulting to 1024x1024 if no resize is requested
+    target_size = resize_to if resize_to else 1024
+    
+    test_transform = transforms.Compose([
+        transforms.Resize((target_size, target_size)),
+        transforms.ToTensor(),
+        # Standard ImageNet normalization used by DenseNet/ConvNeXt
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+
+    # 4. Initialize Dataset & Loader
+    # For Phase 2 Baseline, we only care about the test_loader
+    test_ds = NIHDataset(test_df, img_dir, transform=test_transform)
+    
+    test_loader = DataLoader(
+        test_ds, 
+        batch_size=batch_size, 
+        shuffle=False, 
+        num_workers=4,
+        pin_memory=True
+    )
+
+    return test_loader, pathologies
