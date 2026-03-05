@@ -68,35 +68,7 @@ def main():
     # 4. Inference Loop
     print("Starting Inference...")
     with torch.no_grad():
-        for images, labels in tqdm(test_loader):
-
-            images = images.to(DEVICE)
-
-            # Images are already 1-channel from Dataset.
-            # Scale [0, 1] to XRV's [-1024, 1024]
-            # images = (images * 2048) - 1024
-
-            # print("Value of j: ", j)
-            # Use Sigmoid for multi-label probabilities
-
-            print(f"Scaled Min: {images.min().item()}, Max: {images.max().item()}, Mean: {images.mean().item()}")
-
-            logits = model(images)
-            preds = torch.sigmoid(logits)
-
-            # ### NIH/XRV SPECIFIC CHANGE: Slice 15-class output down to 14-class NIH order ###
-            preds_filtered = preds[:, indices]
-            
-            # all_preds.append(preds.cpu().numpy())
-            all_preds.append(preds_filtered.cpu().numpy())
-            all_labels.append(labels.numpy())
-
-        full_loop = raw_input()
-        if full_loop == 1:
-
-            all_preds, all_labels = list(), list()
-
-            for j, (images, labels) in enumerate(tqdm(test_loader)):
+        for j, (images, labels) in enumerate(tqdm(test_loader)):
 
                 if j > 3:
                     break
@@ -121,6 +93,35 @@ def main():
                 # all_preds.append(preds.cpu().numpy())
                 all_preds.append(preds_filtered.cpu().numpy())
                 all_labels.append(labels.numpy())
+
+        full_loop = raw_input()
+        if full_loop == 1:
+
+            all_preds, all_labels = list(), list()
+
+            with torch.no_grad():
+                for images, labels in tqdm(test_loader):
+
+                    images = images.to(DEVICE)
+
+                    # Images are already 1-channel from Dataset.
+                    # Scale [0, 1] to XRV's [-1024, 1024]
+                    # images = (images * 2048) - 1024
+
+                    # print("Value of j: ", j)
+                    # Use Sigmoid for multi-label probabilities
+
+                    print(f"Scaled Min: {images.min().item()}, Max: {images.max().item()}, Mean: {images.mean().item()}")
+
+                    logits = model(images)
+                    preds = torch.sigmoid(logits)
+
+                    # ### NIH/XRV SPECIFIC CHANGE: Slice 15-class output down to 14-class NIH order ###
+                    preds_filtered = preds[:, indices]
+                    
+                    # all_preds.append(preds.cpu().numpy())
+                    all_preds.append(preds_filtered.cpu().numpy())
+                    all_labels.append(labels.numpy())
 
     all_preds = np.vstack(all_preds)
     all_labels = np.vstack(all_labels)
