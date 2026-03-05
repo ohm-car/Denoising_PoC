@@ -11,7 +11,8 @@ from datasets.nih_dataset import get_nih_loaders
 import argparse
 
 # 1. Configuration
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.accelerator.current_accelerator() if torch.accelerator.is_available() else torch.device("cpu")
 CSV_PATH = "./NIH_Chest_XRay/Data_Entry_2017.csv"
 IMG_DIR = "./NIH_Chest_XRay/images"
 BATCH_SIZE = 256  # Keep low for 1024x1024
