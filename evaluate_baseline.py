@@ -66,9 +66,15 @@ def main():
     all_labels = []
 
     # 4. Inference Loop
+
+    full_loop = input('Run the full validation set? 1 for yes, 0 for no')
+    print(full_loop)
+
     print("Starting Inference...")
-    with torch.no_grad():
-        for j, (images, labels) in enumerate(tqdm(test_loader)):
+
+    if int(full_loop) != 1:
+        with torch.no_grad():
+            for j, (images, labels) in enumerate(tqdm(test_loader)):
 
                 if j > 3:
                     break
@@ -94,34 +100,30 @@ def main():
                 all_preds.append(preds_filtered.cpu().numpy())
                 all_labels.append(labels.numpy())
 
-        full_loop = input('Run the full validation set? 1 for yes, 0 for no')
-        if full_loop == 1:
+    else:
+        with torch.no_grad():
+            for images, labels in tqdm(test_loader):
 
-            all_preds, all_labels = list(), list()
+                images = images.to(DEVICE)
 
-            with torch.no_grad():
-                for images, labels in tqdm(test_loader):
+                # Images are already 1-channel from Dataset.
+                # Scale [0, 1] to XRV's [-1024, 1024]
+                # images = (images * 2048) - 1024
 
-                    images = images.to(DEVICE)
+                # print("Value of j: ", j)
+                # Use Sigmoid for multi-label probabilities
 
-                    # Images are already 1-channel from Dataset.
-                    # Scale [0, 1] to XRV's [-1024, 1024]
-                    # images = (images * 2048) - 1024
+                print(f"Scaled Min: {images.min().item()}, Max: {images.max().item()}, Mean: {images.mean().item()}")
 
-                    # print("Value of j: ", j)
-                    # Use Sigmoid for multi-label probabilities
+                logits = model(images)
+                preds = torch.sigmoid(logits)
 
-                    print(f"Scaled Min: {images.min().item()}, Max: {images.max().item()}, Mean: {images.mean().item()}")
-
-                    logits = model(images)
-                    preds = torch.sigmoid(logits)
-
-                    # ### NIH/XRV SPECIFIC CHANGE: Slice 15-class output down to 14-class NIH order ###
-                    preds_filtered = preds[:, indices]
-                    
-                    # all_preds.append(preds.cpu().numpy())
-                    all_preds.append(preds_filtered.cpu().numpy())
-                    all_labels.append(labels.numpy())
+                # ### NIH/XRV SPECIFIC CHANGE: Slice 15-class output down to 14-class NIH order ###
+                preds_filtered = preds[:, indices]
+                
+                # all_preds.append(preds.cpu().numpy())
+                all_preds.append(preds_filtered.cpu().numpy())
+                all_labels.append(labels.numpy())
 
     all_preds = np.vstack(all_preds)
     all_labels = np.vstack(all_labels)
