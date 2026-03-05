@@ -14,7 +14,7 @@ import argparse
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 CSV_PATH = "./NIH_Chest_XRay/Data_Entry_2017.csv"
 IMG_DIR = "./NIH_Chest_XRay/images"
-BATCH_SIZE = 128  # Keep low for 1024x1024
+BATCH_SIZE = 256  # Keep low for 1024x1024
 MODEL_NAME = 'densenet121'
 IMG_RES = 224
 
@@ -56,8 +56,11 @@ def main():
     model = model.to(DEVICE).eval()
 
     # XRV outputs 18 classes; we need to map to the standard NIH-14 order
+
     xrv_pathologies = model.pathologies
     indices = [xrv_pathologies.index(p) for p in pathologies if p in xrv_pathologies]
+
+    print(pathologies, [xrv_pathologies[i] for i in indices])
 
     all_preds = []
     all_labels = []
@@ -65,21 +68,27 @@ def main():
     # 4. Inference Loop
     print("Starting Inference...")
     with torch.no_grad():
-        for j, images, labels in tqdm(test_loader):
-
-            if j > 1000:
-                break
+        for images, labels in tqdm(test_loader):
 
             images = images.to(DEVICE)
-            
+
+            # Images are already 1-channel from Dataset.
+            # Scale [0, 1] to XRV's [-1024, 1024]
+            images = (images * 2048) - 1024
+
+            # print("Value of j: ", j)
             # Use Sigmoid for multi-label probabilities
+
+            print(f"Scaled Min: {images.min().item()}, Max: {images.max().item()}, Mean: {images.mean().item()}")
+
             logits = model(images)
             preds = torch.sigmoid(logits)
 
             # ### NIH/XRV SPECIFIC CHANGE: Slice 15-class output down to 14-class NIH order ###
             preds_filtered = preds[:, indices]
             
-            all_preds.append(preds.cpu().numpy())
+            # all_preds.append(preds.cpu().numpy())
+            all_preds.append(preds_filtered.cpu().numpy())
             all_labels.append(labels.numpy())
 
     all_preds = np.vstack(all_preds)
@@ -99,6 +108,8 @@ def main():
     # 6. Confusion Matrices
     # Threshold at 0.5 for binary classification per label
     binary_preds = (all_preds > 0.5).astype(int)
+    print(all_labels, len(all_labels[0]), "ALL_LABELS")
+    print(binary_preds, len(binary_preds[0]), "binary_preds")
     mcm = multilabel_confusion_matrix(all_labels, binary_preds)
     
     plot_confusion_matrices(mcm, pathologies)

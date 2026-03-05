@@ -39,7 +39,9 @@ class NIHDataset(Dataset):
         # Load as RGB to ensure compatibility with ImageNet-pretrained weights
         # even though X-rays are fundamentally grayscale.
         try:
-            image = Image.open(img_path).convert('RGB')
+            image = Image.open(img_path).convert('L')
+            
+            # image = Image.open(img_path).convert('RGB')
         except (IOError, OSError):
             # Fallback for corrupted images if any exist in your download
             image = Image.new('RGB', (1024, 1024), (0, 0, 0))
@@ -88,7 +90,7 @@ def get_nih_loaders(csv_path, img_dir, batch_size=16, resize_to=None, test_size=
         transforms.Resize((target_size, target_size)),
         transforms.ToTensor(),
         # Standard ImageNet normalization used by DenseNet/ConvNeXt
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
 
     # 4. Initialize Dataset & Loader
