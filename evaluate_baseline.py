@@ -94,7 +94,7 @@ def main():
                 all_preds.append(preds_filtered.cpu().numpy())
                 all_labels.append(labels.numpy())
 
-        full_loop = raw_input()
+        full_loop = input()
         if full_loop == 1:
 
             all_preds, all_labels = list(), list()
