@@ -14,7 +14,7 @@ import argparse
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 CSV_PATH = "./NIH_Chest_XRay/Data_Entry_2017.csv"
 IMG_DIR = "./NIH_Chest_XRay/images"
-BATCH_SIZE = 16  # Keep low for 1024x1024
+BATCH_SIZE = 256  # Keep low for 1024x1024
 MODEL_NAME = 'densenet121'
 IMG_RES = 224
 
