@@ -5,6 +5,7 @@ from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import GroupShuffleSplit
 from PIL import Image
 import torchvision.transforms as transforms
+from torchvision.transforms import v2
 
 """Dataset access file that generates the dataloaders, does pre-processing, and implements the getitem method.
 This is for the original NIH Chest X-Ray 14 dataset, for the 14-class classification problem."""
@@ -40,7 +41,7 @@ class NIHDataset(Dataset):
         # even though X-rays are fundamentally grayscale.
         try:
             image = Image.open(img_path).convert('L')
-            
+
             # image = Image.open(img_path).convert('RGB')
         except (IOError, OSError):
             # Fallback for corrupted images if any exist in your download
@@ -48,6 +49,11 @@ class NIHDataset(Dataset):
         
         if self.transform:
             image = self.transform(image)
+
+        # 2. XRV CLINICAL SCALING FIX
+        # If transform is ToDtype(scale=True) or ToTensor(), image is [0, 1].
+        # We shift it to [-1024, 1024] here so the Loader outputs "Ready" tensors.
+        image = (image * 2048) - 1024
             
         # Get labels from the one-hot encoded columns we'll create in the helper
         labels = self.df.iloc[idx][self.pathologies].values.astype('float32')
@@ -86,11 +92,11 @@ def get_nih_loaders(csv_path, img_dir, batch_size=16, resize_to=None, test_size=
     # Defaulting to 1024x1024 if no resize is requested
     target_size = resize_to if resize_to else 1024
     
-    test_transform = transforms.Compose([
-        transforms.Resize((target_size, target_size)),
-        transforms.ToTensor(),
-        # Standard ImageNet normalization used by DenseNet/ConvNeXt
-        # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    test_transform = v2.Compose([
+        v2.ToImage(),
+        v2.Resize((resize_to, resize_to), antialias=True),
+        v2.ToDtype(torch.float32, scale=True), 
+        # Note: Scaling to [-1024, 1024] happens in __getitem__
     ])
 
     # 4. Initialize Dataset & Loader
