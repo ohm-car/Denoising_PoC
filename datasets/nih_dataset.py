@@ -53,7 +53,20 @@ class NIHDataset(Dataset):
         # 2. XRV CLINICAL SCALING FIX
         # If transform is ToDtype(scale=True) or ToTensor(), image is [0, 1].
         # We shift it to [-1024, 1024] here so the Loader outputs "Ready" tensors.
-        image = (image * 2048) - 1024
+        if not isinstance(image, torch.Tensor):
+            image = transforms.functional.to_tensor(image)
+
+        image = image.to(torch.float32)
+
+        # 2. Min-Max Normalize to [0, 1]
+        # We do this to ensure we aren't starting with 0-255
+        i_min, i_max = image.min(), image.max()
+        if i_max > i_min:
+            image = (image - i_min) / (i_max - i_min)
+
+        # 3. Final Clinical Scale
+        # Math: (0 * 2048) - 1024 = -1024 | (1 * 2048) - 1024 = 1024
+        image = (image * 2048.0) - 1024.0
             
         # Get labels from the one-hot encoded columns we'll create in the helper
         labels = self.df.iloc[idx][self.pathologies].values.astype('float32')
