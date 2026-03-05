@@ -94,7 +94,7 @@ def main():
                 all_preds.append(preds_filtered.cpu().numpy())
                 all_labels.append(labels.numpy())
 
-        full_loop = input()
+        full_loop = input('Run the full validation set? 1 for yes, 0 for no')
         if full_loop == 1:
 
             all_preds, all_labels = list(), list()
