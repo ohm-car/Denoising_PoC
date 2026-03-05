@@ -14,7 +14,7 @@ import argparse
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 CSV_PATH = "./NIH_Chest_XRay/Data_Entry_2017.csv"
 IMG_DIR = "./NIH_Chest_XRay/images"
-BATCH_SIZE = 256  # Keep low for 1024x1024
+BATCH_SIZE = 16  # Keep low for 1024x1024
 MODEL_NAME = 'densenet121'
 IMG_RES = 224
 
@@ -74,7 +74,7 @@ def main():
 
             # Images are already 1-channel from Dataset.
             # Scale [0, 1] to XRV's [-1024, 1024]
-            images = (images * 2048) - 1024
+            # images = (images * 2048) - 1024
 
             # print("Value of j: ", j)
             # Use Sigmoid for multi-label probabilities
@@ -91,31 +91,36 @@ def main():
             all_preds.append(preds_filtered.cpu().numpy())
             all_labels.append(labels.numpy())
 
-        # for j, (images, labels) in enumerate(tqdm(test_loader)):
+        full_loop = raw_input()
+        if full_loop == 1:
 
-        #     if j > 3:
-        #         break
+            all_preds, all_labels = list(), list()
 
-        #     images = images.to(DEVICE)
+            for j, (images, labels) in enumerate(tqdm(test_loader)):
 
-        #     # Images are already 1-channel from Dataset.
-        #     # Scale [0, 1] to XRV's [-1024, 1024]
-        #     # images = (images * 2048) - 1024
+                if j > 3:
+                    break
 
-        #     # print("Value of j: ", j)
-        #     # Use Sigmoid for multi-label probabilities
+                images = images.to(DEVICE)
 
-        #     print(f"Scaled Min: {images.min().item()}, Max: {images.max().item()}, Mean: {images.mean().item()}")
+                # Images are already 1-channel from Dataset.
+                # Scale [0, 1] to XRV's [-1024, 1024]
+                # images = (images * 2048) - 1024
 
-        #     logits = model(images)
-        #     preds = torch.sigmoid(logits)
+                # print("Value of j: ", j)
+                # Use Sigmoid for multi-label probabilities
 
-        #     # ### NIH/XRV SPECIFIC CHANGE: Slice 15-class output down to 14-class NIH order ###
-        #     preds_filtered = preds[:, indices]
-            
-        #     # all_preds.append(preds.cpu().numpy())
-        #     all_preds.append(preds_filtered.cpu().numpy())
-        #     all_labels.append(labels.numpy())
+                print(f"Scaled Min: {images.min().item()}, Max: {images.max().item()}, Mean: {images.mean().item()}")
+
+                logits = model(images)
+                preds = torch.sigmoid(logits)
+
+                # ### NIH/XRV SPECIFIC CHANGE: Slice 15-class output down to 14-class NIH order ###
+                preds_filtered = preds[:, indices]
+                
+                # all_preds.append(preds.cpu().numpy())
+                all_preds.append(preds_filtered.cpu().numpy())
+                all_labels.append(labels.numpy())
 
     all_preds = np.vstack(all_preds)
     all_labels = np.vstack(all_labels)
@@ -134,8 +139,8 @@ def main():
     # 6. Confusion Matrices
     # Threshold at 0.5 for binary classification per label
     binary_preds = (all_preds > 0.5).astype(int)
-    print(all_labels, len(all_labels[0]), "ALL_LABELS")
-    print(binary_preds, len(binary_preds[0]), "binary_preds")
+    # print(all_labels, len(all_labels[0]), "ALL_LABELS")
+    # print(binary_preds, len(binary_preds[0]), "binary_preds")
     mcm = multilabel_confusion_matrix(all_labels, binary_preds)
     
     plot_confusion_matrices(mcm, pathologies)
