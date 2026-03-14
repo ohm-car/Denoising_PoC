@@ -8,8 +8,8 @@ from datasets.nih_dataset import get_nih_loaders
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 CSV_PATH = "./NIH_Chest_XRay/Data_Entry_2017.csv"
 IMG_DIR = "./NIH_Chest_XRay/images"
-BATCH_SIZE = 4
-IMG_RES = 1024
+BATCH_SIZE = 2
+IMG_RES = 512
 LEARNING_RATE = 2e-5
 EPOCHS = 50
 
