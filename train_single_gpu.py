@@ -2,14 +2,14 @@ import torch
 from tqdm import tqdm
 from monai.inferers import DiffusionInferer
 from models.diffusion_denoiser import get_diffusion_stack
-from nih_dataset import get_nih_loaders
+from datasets.nih_dataset import get_nih_loaders
 
 # --- Global Configuration ---
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 CSV_PATH = "./NIH_Chest_XRay/Data_Entry_2017.csv"
 IMG_DIR = "./NIH_Chest_XRay/images"
-BATCH_SIZE = 4 
-IMG_RES = 224
+BATCH_SIZE = 4
+IMG_RES = 1024
 LEARNING_RATE = 2e-5
 EPOCHS = 50
 
