@@ -1,30 +1,44 @@
 import torch
-from torch.utils.data import DataLoader
 from tqdm import tqdm
 from monai.inferers import DiffusionInferer
 from models.diffusion_denoiser import get_diffusion_stack
-from datasets.nih_dataset import get_nih_loaders
+from nih_dataset import get_nih_loaders
 
-def train_single(csv_path, img_dir, res=1024):
-    DEVICE = torch.device("cuda")
-    torch.set_float32_matmul_precision('high') 
+# --- Global Configuration ---
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+CSV_PATH = "./NIH_Chest_XRay/Data_Entry_2017.csv"
+IMG_DIR = "./NIH_Chest_XRay/images"
+BATCH_SIZE = 4 
+IMG_RES = 224
+LEARNING_RATE = 2e-5
+EPOCHS = 50
+
+def main():
+    torch.set_float32_matmul_precision('high')
     
-    model, scheduler = get_diffusion_stack(res=res)
+    # 1. Load Model & Infrastructure
+    model, scheduler = get_diffusion_stack(res=IMG_RES)
     model.to(DEVICE)
     
-    optimizer = torch.optim.AdamW(model.parameters(), lr=2e-5)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE)
     scaler = torch.amp.GradScaler('cuda')
     inferer = DiffusionInferer(scheduler)
     
-    # Updated to receive three loaders
-    train_loader, val_loader, _, _ = get_nih_loaders(csv_path, img_dir, batch_size=4, resize_to=res)
+    # 2. Get DataLoaders
+    train_loader, val_loader, _, _ = get_nih_loaders(
+        CSV_PATH, IMG_DIR, batch_size=BATCH_SIZE, resize_to=IMG_RES
+    )
 
-    model.train()
-    for epoch in range(50):
-        loop = tqdm(train_loader, desc=f"Epoch {epoch}")
+    # 3. Training Loop
+    print(f"Starting Training at {IMG_RES}x{IMG_RES}...")
+    for epoch in range(EPOCHS):
+        model.train()
+        loop = tqdm(train_loader, desc=f"Epoch {epoch}/{EPOCHS}")
+        
         for images, _ in loop:
             images = images.to(DEVICE)
             
+            # Use BFloat16 for L40S/RTX 6000 stability
             with torch.amp.autocast(device_type='cuda', dtype=torch.bfloat16):
                 noise = torch.randn_like(images)
                 t = torch.randint(0, 1000, (images.shape[0],), device=DEVICE)
@@ -35,10 +49,11 @@ def train_single(csv_path, img_dir, res=1024):
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
+            
             loop.set_postfix(loss=loss.item())
 
-        torch.save(model.state_dict(), f"denoiser_1024_epoch_{epoch}.pt")
+        # Checkpoint every epoch
+        torch.save(model.state_dict(), f"denoiser_res{IMG_RES}_latest.pt")
 
 if __name__ == "__main__":
-    # Update these paths to your actual local paths
-    train_single(csv_path="NIH_Chest_XRay/Data_Entry_2017.csv", img_dir="./NIH_Chest_XRay/images")
+    main()
