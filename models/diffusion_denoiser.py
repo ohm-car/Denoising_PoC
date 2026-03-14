@@ -3,19 +3,15 @@ from monai.networks.nets import DiffusionModelUNet
 from monai.networks.schedulers import DDPMScheduler
 
 def get_diffusion_stack(res=1024):
-    # Scale channels and attention based on resolution
-    if res >= 1024:
-        channels = (128, 256, 512, 512, 1024)
-        att_levels = (False, False, False, True, True)
-    else:
-        channels = (128, 256, 512, 512)
-        att_levels = (False, False, True, True)
+    # 5 levels for 1024px to ensure the bottleneck handles the spatial complexity
+    channels = (128, 256, 512, 512, 1024) if res >= 1024 else (128, 256, 512, 512)
+    att_levels = (False, False, False, True, True) if res >= 1024 else (False, False, True, True)
 
     model = DiffusionModelUNet(
         spatial_dims=2,
         in_channels=1,
         out_channels=1,
-        num_channels=channels,
+        channels=channels,
         attention_levels=att_levels,
         num_res_blocks=2,
         num_head_channels=64,

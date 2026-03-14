@@ -3,21 +3,21 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from monai.inferers import DiffusionInferer
 from models.diffusion_denoiser import get_diffusion_stack
-from nih_dataset import get_loaders
+from datasets.nih_dataset import get_nih_loaders
 
-def train_single(res=1024):
+def train_single(csv_path, img_dir, res=1024):
     DEVICE = torch.device("cuda")
-    torch.set_float32_matmul_precision('high') # L40S optimization
+    torch.set_float32_matmul_precision('high') 
     
     model, scheduler = get_diffusion_stack(res=res)
     model.to(DEVICE)
-    # model = torch.compile(model) # Optional: Adds 20% speedup on L40S
     
     optimizer = torch.optim.AdamW(model.parameters(), lr=2e-5)
     scaler = torch.amp.GradScaler('cuda')
     inferer = DiffusionInferer(scheduler)
     
-    train_loader, _ = get_loaders(batch_size=4, res=res)
+    # Updated to receive three loaders
+    train_loader, val_loader, _, _ = get_nih_loaders(csv_path, img_dir, batch_size=4, resize_to=res)
 
     model.train()
     for epoch in range(50):
@@ -31,13 +31,14 @@ def train_single(res=1024):
                 noise_pred = inferer(inputs=images, diffusion_model=model, noise=noise, timesteps=t)
                 loss = torch.nn.functional.mse_loss(noise_pred, noise)
 
-            optimizer.zero_grad()
+            optimizer.zero_grad(set_to_none=True)
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
             loop.set_postfix(loss=loss.item())
 
-        torch.save(model.state_dict(), f"denoiser_single_{res}.pt")
+        torch.save(model.state_dict(), f"denoiser_1024_epoch_{epoch}.pt")
 
 if __name__ == "__main__":
-    train_single(res=1024)
+    # Update these paths to your actual local paths
+    train_single(csv_path="NIH_Chest_XRay/Data_Entry_2017.csv", img_dir="./NIH_Chest_XRay/images")
