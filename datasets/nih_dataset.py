@@ -136,8 +136,8 @@ def get_nih_loaders(csv_path, img_dir, batch_size=16, resize_to=1024, test_size=
         v2.ToDtype(torch.float32, scale=True), 
     ])
 
-    train_loader = DataLoader(NIHDataset(train_df, img_dir, transform), batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
-    val_loader = DataLoader(NIHDataset(val_df, img_dir, transform), batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
-    test_loader = DataLoader(NIHDataset(test_df, img_dir, transform), batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
+    train_loader = DataLoader(NIHDataset(train_df, img_dir, transform), batch_size=batch_size, shuffle=True, num_workers=2, pin_memory=True)
+    val_loader = DataLoader(NIHDataset(val_df, img_dir, transform), batch_size=batch_size, shuffle=False, num_workers=2, pin_memory=True)
+    test_loader = DataLoader(NIHDataset(test_df, img_dir, transform), batch_size=batch_size, shuffle=False, num_workers=2, pin_memory=True)
 
     return train_loader, val_loader, test_loader, pathologies
