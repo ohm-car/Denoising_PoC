@@ -21,7 +21,7 @@ def main():
     model, scheduler = get_diffusion_stack(res=IMG_RES)
     model.to(DEVICE)
     
-    summary(model, (1, IMG_RES, IMG_RES))
+    # summary(model, (1, IMG_RES, IMG_RES))
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE)
     scaler = torch.amp.GradScaler('cuda')
