@@ -3,6 +3,7 @@ from tqdm import tqdm
 from monai.inferers import DiffusionInferer
 from models.diffusion_denoiser import get_diffusion_stack
 from datasets.nih_dataset import get_nih_loaders
+import torchsummary
 
 # --- Global Configuration ---
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -20,6 +21,8 @@ def main():
     model, scheduler = get_diffusion_stack(res=IMG_RES)
     model.to(DEVICE)
     
+    torchsummary(model, (1, IMG_RES, IMG_RES))
+
     optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE)
     scaler = torch.amp.GradScaler('cuda')
     inferer = DiffusionInferer(scheduler)
