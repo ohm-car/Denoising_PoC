@@ -43,9 +43,9 @@ class NIHDataset(Dataset):
             image = Image.open(img_path).convert('L')
 
             # image = Image.open(img_path).convert('RGB')
-        except (IOError, OSError):
+        except Exception as e:
             # Fallback for corrupted images if any exist in your download
-            image = Image.new('RGB', (1024, 1024), (0, 0, 0))
+            print(e)
         
         if self.transform:
             image = self.transform(image)
