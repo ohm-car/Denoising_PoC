@@ -140,4 +140,10 @@ def get_nih_loaders(csv_path, img_dir, batch_size=16, resize_to=1024, test_size=
     val_loader = DataLoader(NIHDataset(val_df, img_dir, transform), batch_size=batch_size, shuffle=False, num_workers=2, pin_memory=True)
     test_loader = DataLoader(NIHDataset(test_df, img_dir, transform), batch_size=batch_size, shuffle=False, num_workers=2, pin_memory=True)
 
-    return train_loader, val_loader, test_loader, pathologies
+    loaders = {
+        'train': train_loader,
+        'val': val_loader,
+        'test': test_loader
+    }
+
+    return loaders, pathologies
