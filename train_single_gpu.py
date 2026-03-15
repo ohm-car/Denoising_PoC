@@ -4,7 +4,7 @@ import gc
 from tqdm import tqdm
 from torch.utils.checkpoint import checkpoint
 from models.diffusion_denoiser import get_diffusion_stack
-from nih_dataset import get_nih_loaders
+from datasets.nih_dataset import get_nih_loaders
 
 # --- Global Configuration ---
 DEVICE = torch.accelerator.current_accelerator() if torch.accelerator.is_available() else torch.device("cpu")
