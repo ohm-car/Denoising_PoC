@@ -15,7 +15,7 @@ def get_diffusion_stack(res=1024):
         attention_levels=att_levels,
         num_res_blocks=2,
         num_head_channels=64,
-        with_cp=True
+        use_checkpoint=True
     )
     
     scheduler = DDPMScheduler(
