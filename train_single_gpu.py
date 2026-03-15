@@ -22,7 +22,7 @@ def main():
     os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
     
     # Auto-detect precision: Turing (7.5) uses float16
-    dtype = torch.float16 if torch.cuda.get_device_capability(DEVICE)[0] < 8 else torch.bfloat16
+    dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
     print(f"Hardware: Turing RTX | Using Precision: {dtype}")
 
     model, scheduler = get_diffusion_stack(res=IMG_RES)
