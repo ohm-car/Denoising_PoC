@@ -24,7 +24,7 @@ def main():
     # Auto-detect precision: Turing (7.5) uses float16
     dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
     device_name = torch.cuda.get_device_name(0) if torch.cuda.is_available() else None
-    print(f"Hardware: {device} | Using Precision: {dtype}")
+    print(f"Hardware: {device_name} | Using Precision: {dtype}")
 
     model, scheduler = get_diffusion_stack(res=IMG_RES)
     model.to(DEVICE)
