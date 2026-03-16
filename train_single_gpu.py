@@ -10,7 +10,7 @@ from datasets.nih_dataset import get_nih_loaders
 DEVICE = torch.accelerator.current_accelerator() if torch.accelerator.is_available() else torch.device("cpu")
 CSV_PATH = "./NIH_Chest_XRay/Data_Entry_2017.csv"
 IMG_DIR = "./NIH_Chest_XRay/images"
-BATCH_SIZE = 1  
+BATCH_SIZE = 4
 IMG_RES = 512
 LEARNING_RATE = 2e-5
 EPOCHS = 50
