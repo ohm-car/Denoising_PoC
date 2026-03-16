@@ -4,7 +4,8 @@ from monai.networks.schedulers import DDPMScheduler
 
 def get_diffusion_stack(res=1024):
     # 5 levels for 1024px to ensure the bottleneck handles the spatial complexity
-    channels = (128, 256, 512, 512, 1024) if res >= 1024 else (128, 256, 512, 512)
+    # channels = (128, 256, 512, 512, 1024) if res >= 1024 else (128, 256, 512, 512)
+    channels = (128, 256, 512, 512, 1024) if res >= 1024 else (64, 128, 256, 512)
     att_levels = (False, False, False, True, True) if res >= 1024 else (False, False, True, True)
 
     model = DiffusionModelUNet(
