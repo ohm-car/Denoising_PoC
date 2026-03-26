@@ -62,7 +62,7 @@ def main():
             loop.set_postfix(loss=f"{loss.item():.4f}")
 
         if (epoch + 1) % 5 == 0:
-            torch.save(model.state_dict(), f"denoiser_res_{IMG_RES}_epoch_{epoch+1}.pt")
+            torch.save(model.state_dict(), f"weights/denoiser_res_{IMG_RES}_epoch_{epoch+1}.pt")
 
 if __name__ == "__main__":
     main()
