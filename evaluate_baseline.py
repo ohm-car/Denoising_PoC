@@ -15,7 +15,7 @@ import argparse
 DEVICE = torch.accelerator.current_accelerator() if torch.accelerator.is_available() else torch.device("cpu")
 CSV_PATH = "./NIH_Chest_XRay/Data_Entry_2017.csv"
 IMG_DIR = "./NIH_Chest_XRay/images"
-BATCH_SIZE = 256  # Keep low for 1024x1024
+BATCH_SIZE = 64  # Keep low for 1024x1024
 MODEL_NAME = 'densenet121'
 IMG_RES = 224
 
@@ -41,10 +41,12 @@ def plot_confusion_matrices(mcm, pathologies, output_path="confusion_matrices.pn
 def main():
     # 2. Load Data (Phase 2 focuses on Test Set)
     print("Loading Test DataLoader...")
-    test_loader, pathologies = get_nih_loaders(
+    loaders, pathologies = get_nih_loaders(
         # CSV_PATH, IMG_DIR, batch_size=BATCH_SIZE, resize_to=1024
         CSV_PATH, IMG_DIR, batch_size=BATCH_SIZE, resize_to=IMG_RES
     )
+
+    test_loader = loaders['test']
 
     # # 3. Load Model
     # print(f"Initializing {MODEL_NAME}...")
