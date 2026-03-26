@@ -27,6 +27,8 @@ LOAD_RES = 1024
 DENOISE_RES = 512
 CLASSIFY_RES = 224
 
+BATCH_SIZE = 4
+
 # Purification Settings (t=200 is standard for mild denoising)
 PURIFY_TIMESTEP = 200 
 
@@ -61,7 +63,7 @@ def main():
     # 2. Data Loading (Load at 1024px)
     print(f"📦 Loading Data at {LOAD_RES}px...")
     loaders, pathologies = get_nih_loaders(
-        CSV_PATH, IMG_DIR, batch_size=4, resize_to=LOAD_RES
+        CSV_PATH, IMG_DIR, batch_size=BATCH_SIZE, resize_to=LOAD_RES
     )
     test_loader = loaders['test']
 
