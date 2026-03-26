@@ -9,4 +9,4 @@
 #SBATCH --output=diffout.out
 #SBATCH --error=diffout.err
 
-uv run torchrun train_single_gpu.py
+uv run torchrun evaluate_denoised.py

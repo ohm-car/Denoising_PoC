@@ -61,7 +61,7 @@ def main():
     # 2. Data Loading (Load at 1024px)
     print(f"📦 Loading Data at {LOAD_RES}px...")
     loaders, pathologies = get_nih_loaders(
-        CSV_PATH, IMG_DIR, batch_size=1, resize_to=LOAD_RES
+        CSV_PATH, IMG_DIR, batch_size=4, resize_to=LOAD_RES
     )
     test_loader = loaders['test']
 
