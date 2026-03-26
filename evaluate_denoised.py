@@ -97,7 +97,7 @@ def main():
                 for t in purify_steps:
                     t_batch = torch.full((1,), t, device=DEVICE).long()
                     model_output = denoiser(denoised_img, t_batch)
-                    denoised_img = scheduler.step(model_output, t, denoised_img).prev_sample
+                    denoised_img = scheduler.step(model_output, t, denoised_img)[0]
 
             # --- STEP C: Resize 512 -> 224 ---
             img_224 = F.interpolate(denoised_img, size=(CLASSIFY_RES, CLASSIFY_RES), mode='bilinear')
