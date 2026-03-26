@@ -20,7 +20,7 @@ DTYPE = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
 
 CSV_PATH = "./NIH_Chest_XRay/Data_Entry_2017.csv"
 IMG_DIR = "./NIH_Chest_XRay/images"
-DIFFUSION_WEIGHTS = "../denoiser_res_512_epoch_20.pt"
+DIFFUSION_WEIGHTS = "weights/denoiser_res_512_epoch_20.pt"
 
 # Resolution Steps
 LOAD_RES = 1024
