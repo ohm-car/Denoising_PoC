@@ -41,11 +41,14 @@ def main():
         
         for images, _ in loop:
             images = images.to(DEVICE)
+
+            # This ensures the standard Gaussian noise isn't "invisible" to the model.
+            images_norm = (images + 1024.0) / 2048.0
             
             with torch.amp.autocast(device_type='cuda', dtype=dtype):
-                noise = torch.randn_like(images).to(DEVICE)
-                t = torch.randint(0, scheduler.num_train_timesteps, (images.shape[0],), device=DEVICE)
-                noisy_images = scheduler.add_noise(original_samples=images, noise=noise, timesteps=t)
+                noise = torch.randn_like(images_norm).to(DEVICE)
+                t = torch.randint(0, scheduler.num_train_timesteps, (images_norm.shape[0],), device=DEVICE)
+                noisy_images = scheduler.add_noise(original_samples=images_norm, noise=noise, timesteps=t)
                 
                 # Checkpointing for 512px VRAM safety
                 noisy_images.requires_grad_(True) 
