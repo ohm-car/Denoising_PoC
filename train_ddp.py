@@ -1,57 +1,112 @@
 import os
+import gc
 import torch
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data import DataLoader
-from monai.inferers import DiffusionInferer
-from models.diffusion_denoiser import get_diffusion_stack
-from nih_dataset import NIHDataset
+from torch.utils.checkpoint import checkpoint
 from tqdm import tqdm
 
-def train_ddp():
+from models.diffusion_denoiser import get_diffusion_stack
+from datasets.nih_dataset import get_nih_loaders
+
+# --- Global Configuration ---
+CSV_PATH = "./NIH_Chest_XRay/Data_Entry_2017.csv"
+IMG_DIR = "./NIH_Chest_XRay/images"
+BATCH_SIZE = 4 # Note: This will be the batch size PER GPU
+IMG_RES = 512
+LEARNING_RATE = 2e-5
+EPOCHS = 50
+
+def main():
+    # 1. Initialize DDP Process Group
     dist.init_process_group(backend="nccl")
-    rank = int(os.environ["LOCAL_RANK"])
-    torch.cuda.set_device(rank)
-    device = torch.device(f"cuda:{rank}")
+    local_rank = int(os.environ["LOCAL_RANK"])
+    torch.cuda.set_device(local_rank)
+    device = torch.device(f"cuda:{local_rank}")
+
+    # 2. Memory & Precision Optimizations
+    gc.collect()
+    torch.cuda.empty_cache()
+    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
     
-    RES = 1024
-    torch.set_float32_matmul_precision('high')
+    # Auto-detect precision
+    dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
     
-    # Auto-detect BFloat16 support
-    dtype = torch.bfloat16 if torch.cuda.get_device_capability()[0] >= 8 else torch.float16
+    if local_rank == 0:
+        device_name = torch.cuda.get_device_name(local_rank)
+        print(f"Hardware: {device_name} | Using Precision: {dtype} | World Size: {dist.get_world_size()}")
+
+    # 3. Model & Optimizer Setup
+    model, scheduler = get_diffusion_stack(res=IMG_RES)
+    model = model.to(device)
+    # Wrap model in DDP
+    model = DDP(model, device_ids=[local_rank])
     
-    model, scheduler = get_diffusion_stack(res=RES)
-    model = DDP(model.to(device), device_ids=[rank])
-    
-    optimizer = torch.optim.AdamW(model.parameters(), lr=2e-5)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE)
+    # GradScaler is only needed if falling back to float16
     scaler = torch.amp.GradScaler('cuda', enabled=(dtype == torch.float16))
+
+    # 4. Dataset & Distributed Sampler Setup
+    # Extract the raw dataset from the loader to re-wrap it with a DistributedSampler
+    temp_loaders, _ = get_nih_loaders(CSV_PATH, IMG_DIR, batch_size=BATCH_SIZE, resize_to=IMG_RES)
+    train_dataset = temp_loaders['train'].dataset
     
-    dataset = NIHDataset(split='train', resolution=RES)
-    sampler = DistributedSampler(dataset)
-    loader = DataLoader(dataset, batch_size=2, sampler=sampler, num_workers=8)
+    sampler = DistributedSampler(train_dataset)
+    train_loader = DataLoader(
+        train_dataset, 
+        batch_size=BATCH_SIZE, 
+        sampler=sampler, 
+        num_workers=4, # Adjust based on your CPU cores
+        pin_memory=True
+    )
 
-    for epoch in range(50):
+    # 5. Training Loop
+    for epoch in range(EPOCHS):
+        # Mandatory for DDP to shuffle data differently each epoch
         sampler.set_epoch(epoch)
-        pbar = tqdm(loader, disable=(rank != 0))
-        for images, _ in pbar:
+        model.train()
+        
+        # Only show the progress bar on the master GPU (rank 0) to avoid terminal spam
+        loop = tqdm(train_loader, desc=f"Epoch {epoch}/{EPOCHS}", disable=(local_rank != 0))
+        
+        for images, _ in loop:
             images = images.to(device)
-            with torch.amp.autocast(device_type='cuda', dtype=dtype):
-                noise = torch.randn_like(images)
-                t = torch.randint(0, 1000, (images.shape[0],), device=device)
-                pred = model(images, t)
-                loss = torch.nn.functional.mse_loss(pred, noise)
-            
-            optimizer.zero_grad()
-            if dtype == torch.bfloat16:
-                loss.backward()
-                optimizer.step()
-            else:
-                scaler.scale(loss).backward()
-                scaler.step(optimizer)
-                scaler.update()
 
+            # --- NORMALIZATION FIX ---
+            # Scale clinical [-1024, 1024] images to [0, 1] 
+            images_norm = (images + 1024.0) / 2048.0
+            
+            with torch.amp.autocast(device_type='cuda', dtype=dtype):
+                noise = torch.randn_like(images_norm).to(device)
+                t = torch.randint(0, scheduler.num_train_timesteps, (images_norm.shape[0],), device=device)
+                
+                noisy_images = scheduler.add_noise(original_samples=images_norm, noise=noise, timesteps=t)
+                
+                # Checkpointing for 512px VRAM safety
+                noisy_images.requires_grad_(True) 
+                # use_reentrant=False is the recommended standard for DDP + Checkpointing
+                noise_pred = checkpoint(model, noisy_images, t, use_reentrant=False)
+                
+                loss = torch.nn.functional.mse_loss(noise_pred, noise)
+
+            optimizer.zero_grad(set_to_none=True)
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+            
+            if local_rank == 0:
+                loop.set_postfix(loss=f"{loss.item():.4f}")
+
+        # 6. Save Checkpoint (Only on Master Node)
+        if local_rank == 0 and (epoch + 1) % 5 == 0:
+            os.makedirs("weights", exist_ok=True)
+            # Use model.module.state_dict() to strip the "module." prefix added by DDP
+            torch.save(model.module.state_dict(), f"weights/denoiser_res_{IMG_RES}_epoch_{epoch+1}.pt")
+
+    # Clean up the process group at the end
     dist.destroy_process_group()
 
 if __name__ == "__main__":
-    train_ddp()
+    main()
