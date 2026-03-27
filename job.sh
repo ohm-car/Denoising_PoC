@@ -9,4 +9,5 @@
 #SBATCH --output=diffout.out
 #SBATCH --error=diffout.err
 
-uv run torchrun evaluate_denoised.py
+# uv run torchrun evaluate_denoised.py
+uv run torchrun --master-port=29501 evaluate_denoised.py
