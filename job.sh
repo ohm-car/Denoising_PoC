@@ -8,6 +8,7 @@
 #SBATCH --constraint=L40S
 #SBATCH --output=diffout_%j.out
 #SBATCH --error=diffout_%j.err
+#SBATCH --no-requeue
 
 # uv run torchrun evaluate_denoised.py
 # uv run torchrun --master-port=29501 evaluate_denoised.py
