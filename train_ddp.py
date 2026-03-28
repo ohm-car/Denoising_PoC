@@ -58,7 +58,7 @@ def main():
         train_dataset, 
         batch_size=BATCH_SIZE, 
         sampler=sampler, 
-        num_workers=4, # Adjust based on your CPU cores
+        num_workers=1, # Adjust based on your CPU cores
         pin_memory=True
     )
 
