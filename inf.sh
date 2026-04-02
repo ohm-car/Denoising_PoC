@@ -9,6 +9,7 @@
 #SBATCH --output=inf_%j.out
 #SBATCH --error=inf_%j.err
 #SBATCH --no-requeue
+#SBATCH --partition=gpu
 
 # uv run torchrun evaluate_denoised.py
 # uv run torchrun --master-port=29501 evaluate_denoised.py
