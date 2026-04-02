@@ -27,7 +27,7 @@ LOAD_RES = 1024
 DENOISE_RES = 512
 CLASSIFY_RES = 224
 
-BATCH_SIZE = 4
+BATCH_SIZE = 2
 
 # Purification Settings (t=200 is standard for mild denoising)
 PURIFY_TIMESTEP = 200 
