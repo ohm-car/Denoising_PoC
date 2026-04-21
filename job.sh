@@ -14,4 +14,4 @@
 
 # uv run torchrun evaluate_denoised.py
 # uv run torchrun --master-port=29501 evaluate_denoised.py
-uv run torchrun --master-port=29501 --nproc_per_node=2 train_ddp.py
+uv run torchrun --master-port=29501 --nproc_per_node=2 train_ddp.py -j=$SLURM_JOB_ID
