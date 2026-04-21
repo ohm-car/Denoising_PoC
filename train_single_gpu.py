@@ -1,5 +1,6 @@
 import torch
 import os
+import argparse
 import gc
 from tqdm import tqdm
 from torch.utils.checkpoint import checkpoint
@@ -10,12 +11,18 @@ from datasets.nih_dataset import get_nih_loaders
 DEVICE = torch.accelerator.current_accelerator() if torch.accelerator.is_available() else torch.device("cpu")
 CSV_PATH = "./NIH_Chest_XRay/Data_Entry_2017.csv"
 IMG_DIR = "./NIH_Chest_XRay/images"
-BATCH_SIZE = 4
+BATCH_SIZE = 1
 IMG_RES = 512
 LEARNING_RATE = 2e-5
 EPOCHS = 50
 
 def main():
+
+    # --- NEW: Parse the run number argument ---
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-j", "--job_id", type=str, required=True, help="Number for the weights directory")
+    args = parser.parse_args()
+
     gc.collect()
     torch.cuda.empty_cache()
     # Turing optimization: TF32 is not available, but we can still use this for allocator efficiency
@@ -64,8 +71,10 @@ def main():
             
             loop.set_postfix(loss=f"{loss.item():.4f}")
 
-        if (epoch + 1) % 5 == 0:
-            torch.save(model.state_dict(), f"weights/denoiser_res_{IMG_RES}_epoch_{epoch+1}.pt")
+        if ((epoch + 1) % 5 == 0) or (epoch+1 <= 10):
+            save_dir = f"weights/weights_{args.job_id}"
+            os.makedirs(save_dir, exist_ok=True)
+            torch.save(model.state_dict(), f"{save_dir}/denoiser_res_{IMG_RES}_epoch_{epoch+1}.pt")
 
 if __name__ == "__main__":
     main()

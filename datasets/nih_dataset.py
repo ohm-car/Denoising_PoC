@@ -2,6 +2,7 @@ import os
 import sys
 import pandas as pd
 import torch
+import torch.distributed as dist
 from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import GroupShuffleSplit
 from PIL import Image
@@ -77,15 +78,20 @@ def get_nih_loaders(csv_path, img_dir, batch_size=16, resize_to=1024, test_size=
         v2.ToDtype(torch.float32, scale=True), 
     ])
 
-    # Calculate optimal num_workers
-    # os.cpu_count() respects Slurm's --cpus-per-task allocation
-    total_cores = os.cpu_count()
-    world_size = dist.get_world_size() # How many GPUs are running
-    
+    # Calculate optimal num_workers safely for both DDP and Single-GPU
+    total_cores = os.cpu_count() if os.cpu_count() is not None else 2
+     
+    if dist.is_available() and dist.is_initialized():
+        world_size = dist.get_world_size()
+        rank = dist.get_rank()
+    else:
+        world_size = 1
+        rank = 0
+         
     # Give each GPU half of its fair share of CPU cores (minimum 1)
     optimal_workers = max(1, (total_cores // world_size) // 2)
-    
-    if local_rank == 0:
+     
+    if rank == 0:
         print(f"Dynamically set num_workers to: {optimal_workers} per GPU")
 
     train_loader = DataLoader(NIHDataset(train_df, img_dir, transform), batch_size=batch_size, shuffle=True, num_workers=optimal_workers, pin_memory=True)
