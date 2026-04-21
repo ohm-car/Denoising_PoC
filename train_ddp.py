@@ -24,7 +24,7 @@ def main():
 
     # --- NEW: Parse the run number argument ---
     parser = argparse.ArgumentParser()
-    parser.add_argument("--job_id", type=str, required=True, help="Number for the weights directory")
+    parser.add_argument("-j", "--job_id", type=str, required=True, help="Number for the weights directory")
     args = parser.parse_args()
 
 
@@ -108,8 +108,8 @@ def main():
                 loop.set_postfix(loss=f"{loss.item():.4f}")
 
         # 6. Save Checkpoint (Only on Master Node)
-        if local_rank == 0 and (epoch + 1) % 5 == 0:
-            save_dir = f"weights/weights_{args.run_num}"
+        if (local_rank == 0 and (epoch + 1) % 5 == 0) or (epoch+1 <= 10):
+            save_dir = f"weights/weights_{args.job_id}"
             os.makedirs(save_dir, exist_ok=True)
             torch.save(model.module.state_dict(), f"{save_dir}/denoiser_res_{IMG_RES}_epoch_{epoch+1}.pt")
     # Clean up the process group at the end
