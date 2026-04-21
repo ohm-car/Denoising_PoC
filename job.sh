@@ -4,6 +4,7 @@
 #SBATCH --mail-user=omkark1@umbc.edu
 #SBATCH --mem=64G
 #SBATCH --gres=gpu:2
+#SBATCH --cpus-per-task=8
 #SBATCH --time=20-12:00:00
 #SBATCH --constraint=L40S
 #SBATCH --output=diffout_%j.out
