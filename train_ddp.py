@@ -22,6 +22,10 @@ EPOCHS = 50
 
 def main():
 
+    # These flags have no effect on the RTX 8000 but massive gains on L40S/5060
+    torch.backends.cuda.matmul.allow_tf32 = True
+    torch.backends.cudnn.allow_tf32 = True
+
     # --- NEW: Parse the run number argument ---
     parser = argparse.ArgumentParser()
     parser.add_argument("-j", "--job_id", type=str, required=True, help="Number for the weights directory")
@@ -39,8 +43,13 @@ def main():
     torch.cuda.empty_cache()
     os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
     
-    # Auto-detect precision
-    dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+    # # Auto-detect precision
+    # dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+
+    # Strict Hardware-Only Precision Check
+    major, minor = torch.cuda.get_device_capability()
+    # Only use BF16 on Ampere (8.0) or newer (Ada, Hopper, etc.)
+    dtype = torch.bfloat16 if major >= 8 else torch.float16
     
     if local_rank == 0:
         device_name = torch.cuda.get_device_name(local_rank)

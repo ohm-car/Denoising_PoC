@@ -18,6 +18,10 @@ EPOCHS = 50
 
 def main():
 
+    # These flags have no effect on the RTX 8000 but massive gains on L40S/5060
+    torch.backends.cuda.matmul.allow_tf32 = True
+    torch.backends.cudnn.allow_tf32 = True
+
     # --- NEW: Parse the run number argument ---
     parser = argparse.ArgumentParser()
     parser.add_argument("-j", "--job_id", type=str, required=True, help="Number for the weights directory")
@@ -28,8 +32,14 @@ def main():
     # Turing optimization: TF32 is not available, but we can still use this for allocator efficiency
     os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
     
-    # Auto-detect precision: Turing (7.5) uses float16
-    dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+    # # Auto-detect precision: Turing (7.5) uses float16
+    # dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+
+    # Strict Hardware-Only Precision Check
+    major, minor = torch.cuda.get_device_capability()
+    # Only use BF16 on Ampere (8.0) or newer (Ada, Hopper, etc.)
+    dtype = torch.bfloat16 if major >= 8 else torch.float16
+
     device_name = torch.cuda.get_device_name(0) if torch.cuda.is_available() else None
     print(f"Hardware: {device_name} | Using Precision: {dtype}")
 
