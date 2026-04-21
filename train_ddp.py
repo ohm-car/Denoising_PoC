@@ -1,5 +1,6 @@
 import os
 import gc
+import argparse
 import torch
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -20,6 +21,13 @@ LEARNING_RATE = 2e-5
 EPOCHS = 50
 
 def main():
+
+    # --- NEW: Parse the run number argument ---
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--job_id", type=str, required=True, help="Number for the weights directory")
+    args = parser.parse_args()
+
+
     # 1. Initialize DDP Process Group
     dist.init_process_group(backend="nccl")
     local_rank = int(os.environ["LOCAL_RANK"])
@@ -101,10 +109,9 @@ def main():
 
         # 6. Save Checkpoint (Only on Master Node)
         if local_rank == 0 and (epoch + 1) % 5 == 0:
-            os.makedirs("weights", exist_ok=True)
-            # Use model.module.state_dict() to strip the "module." prefix added by DDP
-            torch.save(model.module.state_dict(), f"weights/denoiser_res_{IMG_RES}_epoch_{epoch+1}.pt")
-
+            save_dir = f"weights/weights_{args.run_num}"
+            os.makedirs(save_dir, exist_ok=True)
+            torch.save(model.module.state_dict(), f"{save_dir}/denoiser_res_{IMG_RES}_epoch_{epoch+1}.pt")
     # Clean up the process group at the end
     dist.destroy_process_group()
 
