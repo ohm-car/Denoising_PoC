@@ -12,7 +12,7 @@ DEVICE = torch.accelerator.current_accelerator() if torch.accelerator.is_availab
 CSV_PATH = "./NIH_Chest_XRay/Data_Entry_2017.csv"
 IMG_DIR = "./NIH_Chest_XRay/images"
 BATCH_SIZE = 1
-IMG_RES = 512
+IMG_RES = 384
 LEARNING_RATE = 2e-5
 EPOCHS = 50
 
@@ -60,11 +60,12 @@ def main():
             images = images.to(DEVICE)
 
             # This ensures the standard Gaussian noise isn't "invisible" to the model.
-            images_norm = (images + 1024.0) / 2048.0
+            # images_norm = (images + 1024.0) / 2048.0
+            images_norm = images / 1024.0
             
             with torch.amp.autocast(device_type='cuda', dtype=dtype):
                 noise = torch.randn_like(images_norm).to(DEVICE)
-                t = torch.randint(0, scheduler.num_train_timesteps, (images_norm.shape[0],), device=DEVICE)
+                t = torch.randint(0, scheduler.num_train_timesteps/5, (images_norm.shape[0],), device=DEVICE)
                 noisy_images = scheduler.add_noise(original_samples=images_norm, noise=noise, timesteps=t)
                 
                 # Checkpointing for 512px VRAM safety

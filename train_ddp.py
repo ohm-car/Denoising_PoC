@@ -98,7 +98,7 @@ def main():
             
             with torch.amp.autocast(device_type='cuda', dtype=dtype):
                 noise = torch.randn_like(images_norm).to(device)
-                t = torch.randint(0, scheduler.num_train_timesteps, (images_norm.shape[0],), device=device)
+                t = torch.randint(0, (scheduler.num_train_timesteps)/5, (images_norm.shape[0],), device=device)
                 
                 noisy_images = scheduler.add_noise(original_samples=images_norm, noise=noise, timesteps=t)
                 
