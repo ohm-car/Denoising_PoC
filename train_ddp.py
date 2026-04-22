@@ -93,7 +93,8 @@ def main():
 
             # --- NORMALIZATION FIX ---
             # Scale clinical [-1024, 1024] images to [0, 1] 
-            images_norm = (images + 1024.0) / 2048.0
+            # images_norm = (images + 1024.0) / 2048.0
+            images_norm = images / 1024.0
             
             with torch.amp.autocast(device_type='cuda', dtype=dtype):
                 noise = torch.randn_like(images_norm).to(device)
