@@ -91,7 +91,7 @@ def main():
                 # print("Value of j: ", j)
                 # Use Sigmoid for multi-label probabilities
 
-                print(f"Scaled Min: {images.min().item()}, Max: {images.max().item()}, Mean: {images.mean().item()}")
+                # print(f"Scaled Min: {images.min().item()}, Max: {images.max().item()}, Mean: {images.mean().item()}")
 
                 logits = model(images)
                 preds = torch.sigmoid(logits)
@@ -116,7 +116,7 @@ def main():
                 # print("Value of j: ", j)
                 # Use Sigmoid for multi-label probabilities
 
-                print(f"Scaled Min: {images.min().item()}, Max: {images.max().item()}, Mean: {images.mean().item()}")
+                # print(f"Scaled Min: {images.min().item()}, Max: {images.max().item()}, Mean: {images.mean().item()}")
 
                 logits = model(images)
                 preds = torch.sigmoid(logits)
