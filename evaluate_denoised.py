@@ -67,6 +67,7 @@ def main():
         CSV_PATH, IMG_DIR, batch_size=BATCH_SIZE, resize_to=LOAD_RES
     )
     test_loader = loaders['test']
+    test_loader.num_workers = 1
 
     # Match XRV pathology indices
     xrv_pathologies = classifier.pathologies

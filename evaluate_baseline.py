@@ -47,6 +47,7 @@ def main():
     )
 
     test_loader = loaders['test']
+    test_loader.num_workers = 1
 
     # # 3. Load Model
     # print(f"Initializing {MODEL_NAME}...")
