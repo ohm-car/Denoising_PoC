@@ -16,7 +16,10 @@ from datasets.nih_dataset import get_nih_loaders
 
 # --- Global Configuration ---
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-DTYPE = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+major, minor = torch.cuda.get_device_capability()
+# Only use BF16 on Ampere (8.0) or newer (Ada, Hopper, etc.
+DTYPE = torch.bfloat16 if major >= 8 else torch.float16
+# DTYPE = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
 
 CSV_PATH = "./NIH_Chest_XRay/Data_Entry_2017.csv"
 IMG_DIR = "./NIH_Chest_XRay/images"
@@ -84,6 +87,7 @@ def main():
 
             # --- STEP A: Resize 1024 -> 512 ---
             img_512 = F.interpolate(images, size=(DENOISE_RES, DENOISE_RES), mode='bilinear')
+            img_512 = img_512 / 1024.0
 
             # --- STEP B: Denoising (Purification) ---
             with torch.amp.autocast(device_type='cuda', dtype=DTYPE):
@@ -93,7 +97,7 @@ def main():
                 noisy_img = scheduler.add_noise(img_512, noise, t_tensor)
 
                 # Run reverse diffusion from t=PURIFY_TIMESTEP to t=0
-                scheduler.set_timesteps(num_inference_steps=50) # Faster inference
+                scheduler.set_timesteps(num_inference_steps=250) # Faster inference
                 # Filter timesteps to start from our specific noise level
                 purify_steps = [t for t in scheduler.timesteps if t <= PURIFY_TIMESTEP]
                 
@@ -104,12 +108,14 @@ def main():
                     denoised_img = scheduler.step(model_output, t, denoised_img)[0]
 
             # --- STEP C: Resize 512 -> 224 ---
+            denoised_img = denoised_img * 1024.0
             img_224 = F.interpolate(denoised_img, size=(CLASSIFY_RES, CLASSIFY_RES), mode='bilinear')
 
             # --- STEP D: Inference ---
             # Classifier expects [-1024, 1024], which the pipeline maintains
-            logits = classifier(img_224)
-            preds = torch.sigmoid(logits)
+            # logits = classifier(img_224)
+            # preds = torch.sigmoid(logits)
+            preds = classifier(img_224)
             
             all_preds.append(preds[:, indices].cpu().numpy())
             all_labels.append(labels.numpy())
