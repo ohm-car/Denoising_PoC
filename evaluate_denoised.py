@@ -9,6 +9,7 @@ from tqdm import tqdm
 from sklearn.metrics import roc_auc_score, multilabel_confusion_matrix
 import torch.nn.functional as F
 from monai.inferers import DiffusionInferer
+import argparse
 
 # Assuming these are in your local directory structure
 from models.diffusion_denoiser import get_diffusion_stack
@@ -92,7 +93,7 @@ def main():
             # --- STEP B: Denoising (Purification) ---
             with torch.amp.autocast(device_type='cuda', dtype=DTYPE):
                 # Add noise to the image at t=PURIFY_TIMESTEP
-                t_tensor = torch.full((1,), PURIFY_TIMESTEP, device=DEVICE).long()
+                t_tensor = torch.full((BATCH_SIZE,), PURIFY_TIMESTEP, device=DEVICE).long()
                 noise = torch.randn_like(img_512)
                 noisy_img = scheduler.add_noise(img_512, noise, t_tensor)
 
@@ -103,7 +104,7 @@ def main():
                 
                 denoised_img = noisy_img
                 for t in purify_steps:
-                    t_batch = torch.full((1,), t, device=DEVICE).long()
+                    t_batch = torch.full((BATCH_SIZE,), t, device=DEVICE).long()
                     model_output = denoiser(denoised_img, t_batch)
                     denoised_img = scheduler.step(model_output, t, denoised_img)[0]
 
@@ -133,6 +134,8 @@ def main():
             print(f"{path:20} AUC: {auc:.4f}")
         except ValueError:
             results[path] = np.nan
+
+    print(f"Mean AUC: {np.mean(list(results.values())):.4f}")
 
     # 5. Output
     mcm = multilabel_confusion_matrix(all_labels, (all_preds > 0.5).astype(int))
