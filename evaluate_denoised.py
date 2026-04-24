@@ -93,7 +93,7 @@ def main():
             # --- STEP B: Denoising (Purification) ---
             with torch.amp.autocast(device_type='cuda', dtype=DTYPE):
                 # Add noise to the image at t=PURIFY_TIMESTEP
-                t_tensor = torch.full((BATCH_SIZE,), PURIFY_TIMESTEP, device=DEVICE).long()
+                t_tensor = torch.full((img_512.shape[0],), PURIFY_TIMESTEP, device=DEVICE).long()
                 noise = torch.randn_like(img_512)
                 noisy_img = scheduler.add_noise(img_512, noise, t_tensor)
 
@@ -104,7 +104,7 @@ def main():
                 
                 denoised_img = noisy_img
                 for t in purify_steps:
-                    t_batch = torch.full((BATCH_SIZE,), t, device=DEVICE).long()
+                    t_batch = torch.full((img_512.shape[0],), t, device=DEVICE).long()
                     model_output = denoiser(denoised_img, t_batch)
                     denoised_img = scheduler.step(model_output, t, denoised_img)[0]
 
