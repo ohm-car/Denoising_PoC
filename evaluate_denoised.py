@@ -31,7 +31,7 @@ LOAD_RES = 1024
 DENOISE_RES = 512
 CLASSIFY_RES = 224
 
-BATCH_SIZE = 2
+BATCH_SIZE = 16
 
 # Purification Settings (t=200 is standard for mild denoising)
 PURIFY_TIMESTEP = 200
@@ -71,7 +71,7 @@ def main():
         CSV_PATH, IMG_DIR, batch_size=BATCH_SIZE, resize_to=LOAD_RES
     )
     test_loader = loaders['test']
-    test_loader.num_workers = 1
+    test_loader.num_workers = 4
 
     # Match XRV pathology indices
     xrv_pathologies = classifier.pathologies
