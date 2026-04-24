@@ -24,7 +24,7 @@ DTYPE = torch.bfloat16 if major >= 8 else torch.float16
 
 CSV_PATH = "./NIH_Chest_XRay/Data_Entry_2017.csv"
 IMG_DIR = "./NIH_Chest_XRay/images"
-DIFFUSION_WEIGHTS = "../denoiser_res_512_epoch_15.pt"
+DIFFUSION_WEIGHTS = "weights/weights_164266/denoiser_res_512_epoch_25.pt"
 
 # Resolution Steps
 LOAD_RES = 1024
