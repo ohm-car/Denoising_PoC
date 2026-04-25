@@ -57,6 +57,7 @@ def main():
     # Load 512px Denoiser (Architecture: F, F, F, T as established)
     denoiser, scheduler = get_diffusion_stack(res=DENOISE_RES)
     scheduler.clip_sample = True
+    print(f"Loading weights from {DIFFUSION_WEIGHTS}...")
     denoiser.load_state_dict(torch.load(DIFFUSION_WEIGHTS, map_location=DEVICE))
     denoiser.to(DEVICE).eval()
     inferer = DiffusionInferer(scheduler)
