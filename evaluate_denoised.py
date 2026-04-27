@@ -22,6 +22,11 @@ major, minor = torch.cuda.get_device_capability()
 DTYPE = torch.bfloat16 if major >= 8 else torch.float16
 # DTYPE = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
 
+# Force L40S hardware acceleration
+torch.backends.cudnn.allow_tf32 = True
+torch.backends.cuda.matmul.allow_tf32 = True
+torch.backends.cuda.enable_flash_sdp(True)
+
 CSV_PATH = "./NIH_Chest_XRay/Data_Entry_2017.csv"
 IMG_DIR = "./NIH_Chest_XRay/images"
 DIFFUSION_WEIGHTS = "weights/weights_164266/denoiser_res_512_epoch_30.pt"
@@ -31,10 +36,10 @@ LOAD_RES = 1024
 DENOISE_RES = 512
 CLASSIFY_RES = 224
 
-BATCH_SIZE = 16
+BATCH_SIZE = 32
 
 # Purification Settings (t=200 is standard for mild denoising)
-PURIFY_TIMESTEP = 200
+PURIFY_TIMESTEP = 100
 
 def plot_confusion_matrices(mcm, pathologies, output_path="denoised_confusion_matrices.png"):
     fig, axes = plt.subplots(4, 4, figsize=(20, 20))
@@ -60,7 +65,7 @@ def main():
     print(f"Loading weights from {DIFFUSION_WEIGHTS}...")
     denoiser.load_state_dict(torch.load(DIFFUSION_WEIGHTS, map_location=DEVICE))
     denoiser.to(DEVICE).eval()
-    inferer = DiffusionInferer(scheduler)
+    denoiser = torch.compile(denoiser, mode="reduce-overhead")
 
     # Load 224px Classifier
     classifier = xrv.models.DenseNet(weights="densenet121-res224-nih")
@@ -99,7 +104,7 @@ def main():
                 noisy_img = scheduler.add_noise(img_512, noise, t_tensor)
 
                 # Run reverse diffusion from t=PURIFY_TIMESTEP to t=0
-                scheduler.set_timesteps(num_inference_steps=250) # Faster inference
+                # scheduler.set_timesteps(num_inference_steps=250) # Faster inference
                 # Filter timesteps to start from our specific noise level
                 purify_steps = [t for t in scheduler.timesteps if t <= PURIFY_TIMESTEP]
                 
@@ -110,14 +115,15 @@ def main():
                     denoised_img = scheduler.step(model_output, t, denoised_img)[0]
 
             # --- STEP C: Resize 512 -> 224 ---
+            denoised_img = torch.clamp(denoised_img, min=-1.0, max=1.0)
             denoised_img = denoised_img * 1024.0
             img_224 = F.interpolate(denoised_img, size=(CLASSIFY_RES, CLASSIFY_RES), mode='bilinear')
 
             # --- STEP D: Inference ---
             # Classifier expects [-1024, 1024], which the pipeline maintains
-            logits = classifier(img_224)
-            preds = torch.sigmoid(logits)
-            # preds = classifier(img_224)
+            # logits = classifier(img_224)
+            # preds = torch.sigmoid(logits)
+            preds = classifier(img_224)
             
             all_preds.append(preds[:, indices].cpu().numpy())
             all_labels.append(labels.numpy())
