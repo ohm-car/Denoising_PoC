@@ -24,7 +24,7 @@ DTYPE = torch.bfloat16 if major >= 8 else torch.float16
 
 CSV_PATH = "./NIH_Chest_XRay/Data_Entry_2017.csv"
 IMG_DIR = "./NIH_Chest_XRay/images"
-DIFFUSION_WEIGHTS = "weights/weights_164266/denoiser_res_512_epoch_25.pt"
+DIFFUSION_WEIGHTS = "weights/weights_164266/denoiser_res_512_epoch_30.pt"
 
 # Resolution Steps
 LOAD_RES = 1024
@@ -115,9 +115,9 @@ def main():
 
             # --- STEP D: Inference ---
             # Classifier expects [-1024, 1024], which the pipeline maintains
-            # logits = classifier(img_224)
-            # preds = torch.sigmoid(logits)
-            preds = classifier(img_224)
+            logits = classifier(img_224)
+            preds = torch.sigmoid(logits)
+            # preds = classifier(img_224)
             
             all_preds.append(preds[:, indices].cpu().numpy())
             all_labels.append(labels.numpy())
