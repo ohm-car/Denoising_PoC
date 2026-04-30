@@ -140,7 +140,7 @@ def main():
     all_labels = np.vstack(all_labels)
 
     results = {}
-    print(f"\n--- Denoised Baseline Results ({CLASSIFY_RES}x{CLASSIFY_RES}) ---")
+    print(f"\n--- Denoised Baseline Results for PURIFY_TIMESTEP = {PURIFY_TIMESTEP} ---")
     for i, path in enumerate(pathologies):
         try:
             auc = roc_auc_score(all_labels[:, i], all_preds[:, i])
