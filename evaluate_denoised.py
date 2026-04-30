@@ -22,10 +22,17 @@ major, minor = torch.cuda.get_device_capability()
 DTYPE = torch.bfloat16 if major >= 8 else torch.float16
 # DTYPE = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
 
-# Force L40S hardware acceleration
-torch.backends.cudnn.allow_tf32 = True
-torch.backends.cuda.matmul.allow_tf32 = True
-torch.backends.cuda.enable_flash_sdp(True)
+# --- Hardware Acceleration Selection ---
+if major >= 8:
+    # Ampere (8.0), Ada (8.9), or Hopper (9.0) -> Enable Next-Gen Speedups (e.g., L40S)
+    torch.backends.cudnn.allow_tf32 = True
+    torch.backends.cuda.matmul.allow_tf32 = True
+    torch.backends.cuda.enable_flash_sdp(True)
+    print(f"Compute {major}.{minor} detected. TF32 and Flash Attention enabled.")
+else:
+    # Turing (7.5) or older -> Safe Fallback (e.g., RTX 8000)
+    print(f"Compute {major}.{minor} detected. Falling back to legacy hardware math.")
+
 
 CSV_PATH = "./NIH_Chest_XRay/Data_Entry_2017.csv"
 IMG_DIR = "./NIH_Chest_XRay/images"
@@ -39,7 +46,7 @@ CLASSIFY_RES = 224
 BATCH_SIZE = 32
 
 # Purification Settings (t=200 is standard for mild denoising)
-PURIFY_TIMESTEP = 100
+PURIFY_TIMESTEP = 50
 
 def plot_confusion_matrices(mcm, pathologies, output_path="denoised_confusion_matrices.png"):
     fig, axes = plt.subplots(4, 4, figsize=(20, 20))
