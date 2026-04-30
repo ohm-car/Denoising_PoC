@@ -46,7 +46,7 @@ CLASSIFY_RES = 224
 BATCH_SIZE = 32
 
 # Purification Settings (t=200 is standard for mild denoising)
-PURIFY_TIMESTEP = 50
+PURIFY_TIMESTEP = 25
 
 def plot_confusion_matrices(mcm, pathologies, output_path="denoised_confusion_matrices.png"):
     fig, axes = plt.subplots(4, 4, figsize=(20, 20))
