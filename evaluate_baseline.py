@@ -56,7 +56,7 @@ def main():
 
     # 3. Load Model (Using TorchXRayVision NIH Weights)
     print("Initializing DenseNet-121 with XRV NIH Weights...")
-    model = xrv.models.DenseNet(weights="densenet121-res224-nih")
+    model = xrv.models.DenseNet(weights="densenet121-res224-all")
     model = model.to(DEVICE).eval()
 
     # XRV outputs 18 classes; we need to map to the standard NIH-14 order

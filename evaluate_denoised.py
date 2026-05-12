@@ -75,7 +75,7 @@ def main():
     denoiser = torch.compile(denoiser, mode="reduce-overhead")
 
     # Load 224px Classifier
-    classifier = xrv.models.DenseNet(weights="densenet121-res224-nih")
+    classifier = xrv.models.DenseNet(weights="densenet121-res224-all")
     classifier.to(DEVICE).eval()
 
     # 2. Data Loading (Load at 1024px)
