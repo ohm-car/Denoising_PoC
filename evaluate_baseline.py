@@ -143,6 +143,8 @@ def main():
         except ValueError:
             results[path] = np.nan
 
+    print(f"Mean AUC: {np.mean(list(results.values())):.4f}")
+
     # 6. Confusion Matrices
     # Threshold at 0.5 for binary classification per label
     binary_preds = (all_preds > 0.5).astype(int)
