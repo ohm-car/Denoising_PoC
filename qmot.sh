@@ -5,8 +5,8 @@
 #SBATCH --mem=32G
 #SBATCH --gres=gpu:1
 #SBATCH --time=20-12:00:00
-#SBATCH --output=diffout_%j.out
-#SBATCH --error=diffout_%j.err
+#SBATCH --output=job_%j.out
+#SBATCH --error=job_%j.err
 #SBATCH --no-requeue
 #SBATCH --partition=gpu-general
 
