@@ -4,6 +4,7 @@
 #SBATCH --mail-user=omkark1@umbc.edu
 #SBATCH --mem=32G
 #SBATCH --gres=gpu:1
+#SBATCH --constraint=rtx_2080
 #SBATCH --time=20-12:00:00
 #SBATCH --output=job_%j.out
 #SBATCH --error=job_%j.err
