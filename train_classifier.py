@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -98,10 +99,25 @@ def main():
         print(f'Epoch [{epoch+1}/{args.epochs}] - Train Loss: {train_loss:.4f}, '
               f'Val Loss: {val_loss:.4f}, Val Accuracy: {val_accuracy:.2f}%')
 
-        # Save best model
-        if val_loss < best_val_loss:
+        # Create checkpoint directory
+        checkpoint_dir = f'weights/classification/{args.dataset}'
+        os.makedirs(checkpoint_dir, exist_ok=True)
+
+        # Determine if we should save
+        save_best = val_loss < best_val_loss
+        save_periodic = (epoch + 1) % 5 == 0
+
+        if save_best:
             best_val_loss = val_loss
-            torch.save(model.state_dict(), 'best_model.pth')
+
+        if save_best or save_periodic:
+            model_path = os.path.join(checkpoint_dir, f'{args.dataset}_classifier_epoch_{epoch+1}_NoiseLevel_{args.p_count}.pth')
+            torch.save(model.state_dict(), model_path)
+            
+            if save_best:
+                print(f'Saved best model to {model_path}')
+            else:
+                print(f'Saved checkpoint to {model_path}')
 
     print('Training completed!')
 
