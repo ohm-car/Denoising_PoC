@@ -137,6 +137,7 @@ celerybeat.pid
 # Environments
 .env
 .envrc
+.DS_Store
 .venv
 env/
 venv/
@@ -200,6 +201,9 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+#MacOS related
+.DS_Store
 
 # Marimo
 marimo/_static/
