@@ -10,10 +10,11 @@ import torchvision.transforms as transforms
 from torchvision.transforms import v2
 
 class NIHDataset(Dataset):
-    def __init__(self, dataframe, img_dir, transform=None):
+    def __init__(self, dataframe, img_dir, transform=None, intensity=0):
         self.df = dataframe
         self.img_dir = img_dir
         self.transform = transform
+        self.intensity = intensity
         self.pathologies = [
             'Atelectasis', 'Cardiomegaly', 'Effusion', 'Infiltration', 'Mass', 'Nodule', 
             'Pneumonia', 'Pneumothorax', 'Consolidation', 'Edema', 'Emphysema', 
@@ -48,7 +49,7 @@ class NIHDataset(Dataset):
         labels = self.df.iloc[idx][self.pathologies].values.astype('float32')
         return image, torch.tensor(labels)
 
-def get_nih_loaders(csv_path, img_dir, batch_size=16, resize_to=1024, test_size=0.1, val_size=0.1):
+def get_nih_loaders(csv_path, img_dir, batch_size=16, resize_to=1024, test_size=0.1, val_size=0.1, intensity=0):
     df = pd.read_csv(csv_path)
     pathologies = [
         'Atelectasis', 'Cardiomegaly', 'Effusion', 'Infiltration', 'Mass', 'Nodule', 
@@ -94,9 +95,9 @@ def get_nih_loaders(csv_path, img_dir, batch_size=16, resize_to=1024, test_size=
     if rank == 0:
         print(f"Dynamically set num_workers to: {optimal_workers} per GPU")
 
-    train_loader = DataLoader(NIHDataset(train_df, img_dir, transform), batch_size=batch_size, shuffle=True, num_workers=optimal_workers, pin_memory=True)
-    val_loader = DataLoader(NIHDataset(val_df, img_dir, transform), batch_size=batch_size, shuffle=False, num_workers=optimal_workers, pin_memory=True)
-    test_loader = DataLoader(NIHDataset(test_df, img_dir, transform), batch_size=batch_size, shuffle=False, num_workers=optimal_workers, pin_memory=True)
+    train_loader = DataLoader(NIHDataset(train_df, img_dir, transform, intensity=intensity), batch_size=batch_size, shuffle=True, num_workers=optimal_workers, pin_memory=True)
+    val_loader = DataLoader(NIHDataset(val_df, img_dir, transform, intensity=intensity), batch_size=batch_size, shuffle=False, num_workers=optimal_workers, pin_memory=True)
+    test_loader = DataLoader(NIHDataset(test_df, img_dir, transform, intensity=intensity), batch_size=batch_size, shuffle=False, num_workers=optimal_workers, pin_memory=True)
 
     loaders = {
         'train': train_loader,

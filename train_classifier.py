@@ -20,16 +20,18 @@ def main():
     parser.add_argument('--num_workers', type=int, default=4, help='Number of data loading workers')
     parser.add_argument('--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu',
                         help='Device to use for training')
+    parser.add_argument('-p', '--p_count', type=int, choices=[0, 12000, 1200, 200], default=0,
+                        help='Photon Intensity Value')
     args = parser.parse_args()
 
     device = torch.device(args.device)
 
     # Create dataloaders from dataset file
     if args.dataset == 'covid':
-        loaders, _ = get_covid_loaders(batch_size=args.batch_size if args.batch_size is not None else 40, resize_to=224)
+        loaders, _ = get_covid_loaders(batch_size=args.batch_size if args.batch_size is not None else 40, resize_to=224, intensity=args.p_count)
         train_loader, val_loader = loaders['train'], loaders['val']
     elif args.dataset == 'nih':
-        loaders, _ = get_nih_loaders(csv_path = "./Data/NIH_Chest_XRay/Data_Entry_2017.csv", img_dir = "./Data/NIH_Chest_XRay/images", batch_size=args.batch_size if args.batch_size is not None else 12, resize_to=512)
+        loaders, _ = get_nih_loaders(csv_path = "./Data/NIH_Chest_XRay/Data_Entry_2017.csv", img_dir = "./Data/NIH_Chest_XRay/images", batch_size=args.batch_size if args.batch_size is not None else 12, resize_to=512, intensity=args.p_count)
         train_loader, val_loader = loaders['train'], loaders['val']
     else:
         raise ValueError("Invalid dataset choice. Choose either 'nih' or 'covid'.")

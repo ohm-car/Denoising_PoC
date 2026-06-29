@@ -23,11 +23,12 @@ class CovidRadiographyDataset(Dataset):
     }
     TARGET_NAMES = ('COVID-19', 'Normal', 'Viral_Pneumonia', 'Lung_Opacity')
 
-    def __init__(self, root_dir=None, classes=None, transform=None):
+    def __init__(self, root_dir=None, classes=None, transform=None, intensity=0):
         if root_dir is None:
             root_dir = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', 'Data', 'covid19-radiography-database', 'COVID-19_Radiography_Dataset'))
         self.root_dir = root_dir
         self.transform = transform
+        self.intensity = intensity
         self.classes = list(classes) if classes is not None else list(self.TARGET_NAMES)
         self.class_to_idx = {class_name: self.TARGET_NAMES.index(class_name) for class_name in self.classes}
         self.samples = self._make_dataset()
@@ -80,7 +81,7 @@ class CovidRadiographyDataset(Dataset):
         return image, target
 
 
-def get_covid_loaders(root_dir=None, batch_size=16, resize_to=224, test_size=0.1, val_size=0.1):
+def get_covid_loaders(root_dir=None, batch_size=16, resize_to=224, test_size=0.1, val_size=0.1, intensity=0):
     """
     Load COVID-19 Radiography dataset with train/val/test splits.
     
@@ -90,6 +91,7 @@ def get_covid_loaders(root_dir=None, batch_size=16, resize_to=224, test_size=0.1
         resize_to: Image resize dimension
         test_size: Fraction of data for test set
         val_size: Fraction of data for validation set
+        intensity: Photon intensity value (0, 12000, 1200, or 200)
     
     Returns:
         dict: Dictionary with 'train', 'val', 'test' DataLoaders
@@ -101,7 +103,7 @@ def get_covid_loaders(root_dir=None, batch_size=16, resize_to=224, test_size=0.1
     target_names = CovidRadiographyDataset.TARGET_NAMES
     
     # Load all samples from the dataset
-    full_dataset = CovidRadiographyDataset(root_dir=root_dir)
+    full_dataset = CovidRadiographyDataset(root_dir=root_dir, intensity=intensity)
     all_samples = full_dataset.samples
     
     # First split: separate test set
@@ -143,13 +145,13 @@ def get_covid_loaders(root_dir=None, batch_size=16, resize_to=224, test_size=0.1
         print(f"Dynamically set num_workers to: {optimal_workers} per GPU")
     
     # Create datasets by modifying samples on instances
-    train_dataset = CovidRadiographyDataset(root_dir=root_dir, transform=transform)
+    train_dataset = CovidRadiographyDataset(root_dir=root_dir, transform=transform, intensity=intensity)
     train_dataset.samples = train_samples
     
-    val_dataset = CovidRadiographyDataset(root_dir=root_dir, transform=transform)
+    val_dataset = CovidRadiographyDataset(root_dir=root_dir, transform=transform, intensity=intensity)
     val_dataset.samples = val_samples
     
-    test_dataset = CovidRadiographyDataset(root_dir=root_dir, transform=transform)
+    test_dataset = CovidRadiographyDataset(root_dir=root_dir, transform=transform, intensity=intensity)
     test_dataset.samples = test_samples
     
     train_loader = DataLoader(
