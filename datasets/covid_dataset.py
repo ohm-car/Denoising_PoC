@@ -100,6 +100,9 @@ def get_covid_loaders(root_dir=None, batch_size=16, resize_to=224, test_size=0.1
     if root_dir is None:
         root_dir = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', 'Data', 'covid19-radiography-database', 'COVID-19_Radiography_Dataset'))
     
+    if intensity != 0:
+        root_dir = root_dir.replace('COVID-19_Radiography_Dataset', f'COVID-19_Radiography_Dataset_n_{intensity}')
+    
     target_names = CovidRadiographyDataset.TARGET_NAMES
     
     # Load all samples from the dataset

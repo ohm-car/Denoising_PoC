@@ -50,6 +50,10 @@ class NIHDataset(Dataset):
         return image, torch.tensor(labels)
 
 def get_nih_loaders(csv_path, img_dir, batch_size=16, resize_to=1024, test_size=0.1, val_size=0.1, intensity=0):
+
+    if intensity != 0:
+        img_dir = img_dir.replace("images", f"images_n_{intensity}")
+
     df = pd.read_csv(csv_path)
     pathologies = [
         'Atelectasis', 'Cardiomegaly', 'Effusion', 'Infiltration', 'Mass', 'Nodule', 
