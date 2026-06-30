@@ -70,12 +70,18 @@ def get_nih_loaders(csv_path, img_dir, batch_size=16, resize_to=1024, test_size=
     test_df = df.iloc[test_idx].reset_index(drop=True)
     temp_df = df.iloc[train_val_idx].reset_index(drop=True)
 
+    #Temp code:
+    test_df = test_df[:100]  # Limit test set to first 100 samples for faster inference during development
+
     # 2. Second Split: Train vs Val
     adjusted_val_size = val_size / (1 - test_size)
     gss_val = GroupShuffleSplit(n_splits=1, test_size=adjusted_val_size, random_state=42)
     train_idx, val_idx = next(gss_val.split(temp_df, groups=temp_df['Patient ID']))
     train_df = temp_df.iloc[train_idx].reset_index(drop=True)
     val_df = temp_df.iloc[val_idx].reset_index(drop=True)
+
+    train_df = train_df[:100]  # Limit train set to first 100 samples for faster inference during development
+    val_df = val_df[:100]      # Limit val set to first 100 samples for faster inference during development
 
     transform = v2.Compose([
         v2.ToImage(),

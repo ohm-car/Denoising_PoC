@@ -53,7 +53,12 @@ def main():
     model = model.to(device)
 
     # Loss function and optimizer
-    criterion = nn.CrossEntropyLoss()
+    # NIH is multi-label -> use BCEWithLogitsLoss, COVID is single-label -> CrossEntropyLoss
+    is_multilabel = args.dataset == 'nih'
+    if is_multilabel:
+        criterion = nn.BCEWithLogitsLoss()
+    else:
+        criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
 
     # Training loop
@@ -63,7 +68,12 @@ def main():
         model.train()
         train_loss = 0.0
         for images, labels in tqdm(train_loader, desc=f'Train Epoch {epoch+1}/{args.epochs}', leave=False):
-            images, labels = images.to(device), labels.to(device)
+            images = images.to(device)
+            # NIH labels are multi-hot vectors (multi-label)
+            if is_multilabel:
+                labels = labels.to(device).float()
+            else:
+                labels = labels.to(device)
 
             optimizer.zero_grad()
             outputs = model(images)
@@ -83,15 +93,25 @@ def main():
 
         with torch.no_grad():
             for images, labels in tqdm(val_loader, desc=f'Val Epoch {epoch+1}/{args.epochs}', leave=False):
-                images, labels = images.to(device), labels.to(device)
+                images = images.to(device)
+                if is_multilabel:
+                    labels = labels.to(device).float()
+                else:
+                    labels = labels.to(device)
 
                 outputs = model(images)
                 loss = criterion(outputs, labels)
                 val_loss += loss.item() * images.size(0)
 
-                _, predicted = torch.max(outputs.data, 1)
-                total += labels.size(0)
-                correct += (predicted == labels).sum().item()
+                if is_multilabel:
+                    preds = (torch.sigmoid(outputs) > 0.5).byte()
+                    targets = (labels > 0.5).byte()
+                    correct += (preds == targets).sum().item()
+                    total += targets.numel()
+                else:
+                    _, predicted = torch.max(outputs.data, 1)
+                    total += labels.size(0)
+                    correct += (predicted == labels).sum().item()
 
         val_loss /= len(val_loader.dataset)
         val_accuracy = 100 * correct / total
