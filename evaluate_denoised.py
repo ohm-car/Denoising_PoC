@@ -34,8 +34,8 @@ else:
     print(f"Compute {major}.{minor} detected. Falling back to legacy hardware math.")
 
 
-CSV_PATH = "./NIH_Chest_XRay/Data_Entry_2017.csv"
-IMG_DIR = "./NIH_Chest_XRay/images"
+CSV_PATH = "./Data/NIH_Chest_XRay/Data_Entry_2017.csv"
+IMG_DIR = "./Data/NIH_Chest_XRay/images"
 DIFFUSION_WEIGHTS = "weights/weights_164266/denoiser_res_512_epoch_30.pt"
 
 # Resolution Steps
@@ -43,7 +43,7 @@ LOAD_RES = 1024
 DENOISE_RES = 512
 CLASSIFY_RES = 224
 
-BATCH_SIZE = 32
+BATCH_SIZE = 16
 
 # Purification Settings (t=200 is standard for mild denoising)
 PURIFY_TIMESTEP = 25
